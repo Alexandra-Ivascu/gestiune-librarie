@@ -11,26 +11,108 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function loadBooks() {
-      try {
-        const response = await fetch(`${API_URL}/books`);
+  const [filters, setFilters] = useState({
+    titlu: "",
+    limba: "",
+    editura: "",
+    minPret: "",
+    maxPret: "",
+    stoc: false
+  });
 
-        if (!response.ok) {
-          throw new Error("Could not load books.");
+  const [languages, setLanguages] = useState([]);
+  const [publishers, setPublishers] = useState([]);
+
+  const loadBooks = async (currentFilters = filters) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const params = new URLSearchParams();
+
+      Object.entries(currentFilters).forEach(([key, value]) => {
+        if (value !== "" && value !== false) {
+          params.append(key, value);
         }
+      });
 
-        const data = await response.json();
-        setBooks(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      const response = await fetch(
+        `${API_URL}/books?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Could not load books.");
       }
+
+      const data = await response.json();
+      setBooks(data);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+    const loadFilterOptions = async () => {
+  try {
+    const response = await fetch(`${API_URL}/books/filters`);
+
+    if (!response.ok) {
+      throw new Error("Could not load filter options.");
     }
 
-    loadBooks();
-  }, []);
+    const data = await response.json();
+
+    setLanguages(data.languages || []);
+    setPublishers(data.publishers || []);
+
+  } catch (err) {
+    console.error(err.message);
+  }
+};
+
+
+ useEffect(() => {
+  loadBooks();
+  loadFilterOptions();
+}, []);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    setFilters((previousFilters) => ({
+      ...previousFilters,
+      [name]: type === "checkbox" ? checked : value
+    }));
+  };
+
+ const handleFilter = () => {
+  const cleanedFilters = {
+    ...filters,
+    titlu: filters.titlu.trim(),
+    limba: filters.limba.trim(),
+    editura: filters.editura.trim()
+  };
+
+  loadBooks(cleanedFilters);
+};
+
+  const handleReset = () => {
+    const emptyFilters = {
+      titlu: "",
+      limba: "",
+      editura: "",
+      minPret: "",
+      maxPret: "",
+      stoc: false
+    };
+
+    setFilters(emptyFilters);
+    loadBooks(emptyFilters);
+  };
+
+
 
   return (
     <div className="app">
@@ -40,21 +122,103 @@ function App() {
         </a>
 
         <nav>
-          <a href="/">Cărți</a>
+          <a href="/">Cărțile noastre</a>
+          <a href="#">Conectează-te</a>
         </nav>
+       
+          
+      
       </header>
 
       <main className="main">
 
         <section className="catalog">
           <div className="section-heading">
-            <div>
-              <h2>Cărțile noastre</h2>
-              
+          
+              <div className="filters">
+            <h3>Filtrează cărțile</h3>
+
+            <div className="filter-grid">
+
+              <input
+                type="text"
+                name="titlu"
+                placeholder="Caută după titlu..."
+                value={filters.titlu}
+                onChange={handleChange}
+              />
+
+              <select
+                name="limba"
+                value={filters.limba}
+                onChange={handleChange}
+              >
+                <option value="">Toate limbile</option>
+
+                {languages.map((language) => (
+                  <option key={language} value={language}>
+                    {language}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                name="editura"
+                value={filters.editura}
+                onChange={handleChange}
+              >
+                <option value="">Toate editurile</option>
+
+                {publishers.map((publisher) => (
+                  <option key={publisher} value={publisher}>
+                    {publisher}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                name="maxPret"
+                placeholder="Preț maxim"
+                min="0"
+                value={filters.maxPret}
+                onChange={handleChange}
+              />
+
             </div>
 
-            <span>{books.length} cărți</span>
+            <label className="stock-filter">
+              <input
+                type="checkbox"
+                name="stoc"
+                checked={filters.stoc}
+                onChange={handleChange}
+              />
+
+              Doar cărțile aflate în stoc
+            </label>
+
+            <div className="filter-buttons">
+              <button onClick={handleFilter}>
+                Aplică filtrele
+              </button>
+
+              <button
+                className="reset-button"
+                onClick={handleReset}
+              >
+                Resetează
+              </button>
+            </div>
           </div>
+
+          </div>
+           {!loading && (
+            <div className="results-count">
+              {books.length} cărți găsite
+            </div>
+          )}
+
 
           {loading && <p>Se încarcă...</p>}
 
@@ -62,9 +226,9 @@ function App() {
 
           {!loading && !error && books.length === 0 && (
             <div className="empty">
-              <h3>No books yet</h3>
+              <h3>Nu există cărți</h3>
               <p>
-                Your API is working, but the carte table has no books.
+                Nu am găsit cărți care să corespundă filtrelor.
               </p>
             </div>
           )}

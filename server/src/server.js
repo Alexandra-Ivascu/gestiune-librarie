@@ -32,9 +32,18 @@ app.get("/api/health", async(req,res)=>{
     }
 });
 
-app.get("/api/books",async(req,res)=>{
-    try{
-        const result= await pool.query(`
+
+app.get("/api/books", async (req, res) => {
+  try {
+    const {
+      titlu,
+      limba,
+      editura,
+      maxPret,
+      stoc
+    } = req.query;
+
+    let query = `
       SELECT
         codcar,
         titlu,
@@ -47,17 +56,85 @@ app.get("/api/books",async(req,res)=>{
         editura,
         nr_pag
       FROM carte
-      ORDER BY codcar DESC
-    `);
+      WHERE 1=1
+    `;
+
+    const values = [];
+    let index = 1;
+
+    if (titlu) {
+      query += ` AND titlu ILIKE $${index}`;
+      values.push(`%${titlu}%`);
+      index++;
+    }
+
+    if (limba) {
+      query += ` AND limba ILIKE $${index}`;
+      values.push(limba);
+      index++;
+    }
+
+    if (editura) {
+      query += ` AND editura ILIKE $${index}`;
+      values.push(editura);
+      index++;
+    }
+
+    if (maxPret !== undefined) {
+      query += ` AND pret <= $${index}`;
+      values.push(maxPret);
+      index++;
+    }
+
+    if (stoc === "true") {
+      query += ` AND stoc > 0`;
+    }
+
+    query += ` ORDER BY codcar DESC`;
+
+    const result = await pool.query(query, values);
+
     res.json(result.rows);
-    } catch(error){
-         console.error("Could not retrieve books:", error.message);
+
+  } catch (error) {
+    console.error("Could not retrieve books:", error.message);
 
     res.status(500).json({
       message: "Could not retrieve books"
     });
-    }
+  }
 });
+
+
+app.get("/api/books/filters", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        ARRAY(
+          SELECT DISTINCT limba
+          FROM carte
+          ORDER BY limba
+        ) AS languages,
+
+        ARRAY(
+          SELECT DISTINCT editura
+          FROM carte
+          ORDER BY editura
+        ) AS publishers
+    `);
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error("Could not retrieve filters:", error.message);
+
+    res.status(500).json({
+      message: "Could not retrieve filter options"
+    });
+  }
+});
+
+
 
 app.listen(PORT,()=>{
     console.log(`Server running at http://localhost:${PORT}`);
