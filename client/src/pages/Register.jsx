@@ -26,7 +26,7 @@ export default function Register() {
     setSuccess("");
 
     if (formData.parola.length < 12) {
-      setError("Parola trebuie să conțină cel puțin 12 caractere.");
+      setError("Password must contain at least 12 characters");
       return;
     }
 
@@ -34,7 +34,7 @@ export default function Register() {
 
     try {
       await register(formData.nume, formData.prenume, formData.email, formData.parola);
-      setSuccess("Cont creat cu succes! Redirecționare către autentificare...");
+      setSuccess("Successfully created account! Redirecting to login...");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       setError(err.message);
@@ -45,7 +45,7 @@ export default function Register() {
 
   return (
     <div style={{ maxWidth: "400px", margin: "40px auto", padding: "24px", background: "white", borderRadius: "12px", border: "1px solid #e5e7eb" }}>
-      <h2>Înregistrare cont</h2>
+      <h2>Sign up</h2>
       {error && <p style={{ color: "#ef4444", fontSize: "14px" }}>{error}</p>}
       {success && <p style={{ color: "#10b981", fontSize: "14px" }}>{success}</p>}
 
@@ -53,7 +53,7 @@ export default function Register() {
         <input
           type="text"
           name="nume"
-          placeholder="Nume"
+          placeholder="Last Name"
           value={formData.nume}
           onChange={handleChange}
           required
@@ -62,7 +62,7 @@ export default function Register() {
         <input
           type="text"
           name="prenume"
-          placeholder="Prenume"
+          placeholder="First Name"
           value={formData.prenume}
           onChange={handleChange}
           required
@@ -80,7 +80,7 @@ export default function Register() {
         <input
           type="password"
           name="parola"
-          placeholder="Parolă (min. 12 caractere)"
+          placeholder="Password (min. 12 characters)"
           value={formData.parola}
           onChange={handleChange}
           required
@@ -91,11 +91,11 @@ export default function Register() {
           disabled={loading}
           style={{ padding: "10px", background: "#2563eb", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
         >
-          {loading ? "Se înregistrează..." : "Înregistrează-te"}
+          {loading ? "Signing up..." : "Sign up"}
         </button>
       </form>
       <p style={{ marginTop: "16px", fontSize: "14px" }}>
-        Ai deja cont? <Link to="/login">Conectează-te</Link>
+        Already have an account? <Link to="/login"><strong>Log in</strong></Link>
       </p>
     </div>
   );

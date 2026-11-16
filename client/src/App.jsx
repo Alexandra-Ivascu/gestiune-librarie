@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Routes, Route } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -101,23 +102,23 @@ function Catalog() {
     <main className="main">
       <section className="catalog">
         <div className="filters">
-          <h3>Filtrează cărțile</h3>
+          <h3>Filter books</h3>
           <div className="filter-grid">
             <input
               type="text"
               name="titlu"
-              placeholder="Caută după titlu..."
+              placeholder="Search by title..."
               value={filters.titlu}
               onChange={handleChange}
             />
             <select name="limba" value={filters.limba} onChange={handleChange}>
-              <option value="">Toate limbile</option>
+              <option value="">All languages</option>
               {languages.map((language) => (
                 <option key={language} value={language}>{language}</option>
               ))}
             </select>
             <select name="editura" value={filters.editura} onChange={handleChange}>
-              <option value="">Toate editurile</option>
+              <option value="">All publishers</option>
               {publishers.map((publisher) => (
                 <option key={publisher} value={publisher}>{publisher}</option>
               ))}
@@ -125,7 +126,7 @@ function Catalog() {
             <input
               type="number"
               name="maxPret"
-              placeholder="Preț maxim"
+              placeholder="Maximum price"
               min="0"
               value={filters.maxPret}
               onChange={handleChange}
@@ -139,23 +140,23 @@ function Catalog() {
               checked={filters.stoc}
               onChange={handleChange}
             />
-            Doar cărțile aflate în stoc
+            Only books in stock
           </label>
 
           <div className="filter-buttons">
-            <button onClick={handleFilter}>Aplică filtrele</button>
-            <button className="reset-button" onClick={handleReset}>Resetează</button>
+            <button onClick={handleFilter}>Apply filters</button>
+            <button className="reset-button" onClick={handleReset}>Reset</button>
           </div>
         </div>
 
-        {!loading && <div className="results-count">{books.length} cărți găsite</div>}
-        {loading && <p>Se încarcă...</p>}
+        {!loading && <div className="results-count">{books.length} books found</div>}
+        {loading && <p>Loading...</p>}
         {error && <p className="error">{error}</p>}
 
         {!loading && !error && books.length === 0 && (
           <div className="empty">
-            <h3>Nu există cărți</h3>
-            <p>Nu am găsit cărți care să corespundă filtrelor.</p>
+            <h3>No book</h3>
+            <p>Didn't find any books matching the filters.</p>
           </div>
         )}
 
@@ -170,7 +171,7 @@ function Catalog() {
                   <p className="description">{book.descriere || "Descoperă această carte"}</p>
                   <div className="book-bottom">
                     <strong>{Number(book.pret).toFixed(2)} lei</strong>
-                    <span>{book.stoc > 0 ? `${book.stoc} în stoc` : "Stoc epuizat"}</span>
+                    <span>{book.stoc > 0 ? `${book.stoc} in stock` : "Out of stock"}</span>
                   </div>
                 </div>
               </article>
@@ -186,8 +187,29 @@ function App() {
   return (
     <div className="app">
       <Navbar />
+
       <Routes>
-        <Route path="/" element={<Catalog />} />
+        <Route
+          path="/"
+          element={
+            <>
+              <section className="hero">
+                <div className="hero-content">
+                  <h1>Our bookstore</h1>
+                  <p>Your experience matters</p>
+                  <a href="#catalog" className="hero-button">
+                    Explore the catalog
+                  </a>
+                </div>
+              </section>
+
+              <div id="catalog">
+                <Catalog />
+              </div>
+            </>
+          }
+        />
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Routes>

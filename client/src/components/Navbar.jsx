@@ -1,44 +1,58 @@
+
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const closeMenu = () => setMenuOpen(false);
+
+  const handleLogout = () => {
+    logout();
+    closeMenu();
+  };
 
   return (
     <header className="header">
-      <Link className="logo" to="/">
-        Librărie
+      <Link className="logo" to="/" onClick={closeMenu}>
+        Bookstore
       </Link>
 
-      <nav style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-        <Link to="/">Cărțile noastre</Link>
+     
+      <button
+        className="hamburger"
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="Toggle navigation menu"
+        aria-expanded={menuOpen}
+      >
+        {menuOpen ? "✕" : "☰"}
+      </button>
+
+      <nav className={`nav-links ${menuOpen ? "active" : ""}`}>
+        <a href="/#catalog" onClick={closeMenu}>
+          Catalog
+        </a>
+
+        <Link to="/autori" onClick={closeMenu}>
+          Discover authors
+        </Link>
 
         {user ? (
           <>
-            <span style={{ fontSize: "14px", color: "#4b5563" }}>
-              Salut, <strong>{user.nume}</strong> {user.admin ? "(Admin)" : ""}
-            </span>
-            <button
-              onClick={logout}
-              style={{
-                background: "#ef4444",
-                color: "white",
-                border: "none",
-                padding: "6px 12px",
-                borderRadius: "6px",
-                cursor: "pointer"
-              }}
-            >
-              Deconectare
+          <Link className="my-account-btn" to="/my-account" onClick={closeMenu}>
+            My Account
+          </Link>
+
+            <button className="logout-btn" onClick={handleLogout}>
+              Log out
             </button>
           </>
         ) : (
-          <>
-            <Link to="/login">Conectează-te</Link>
-            <Link to="/register" style={{ background: "#2563eb", color: "white", padding: "6px 12px", borderRadius: "6px" }}>
-              Înregistrare
-            </Link>
-          </>
+          <Link className="login-btn" to="/login" onClick={closeMenu}>
+            Log in
+          </Link>
         )}
       </nav>
     </header>

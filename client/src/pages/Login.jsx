@@ -28,7 +28,7 @@ export default function Login() {
 
   return (
     <div style={{ maxWidth: "400px", margin: "40px auto", padding: "24px", background: "white", borderRadius: "12px", border: "1px solid #e5e7eb" }}>
-      <h2>Conectare</h2>
+      <h2>Log in</h2>
       {error && <p style={{ color: "#ef4444", fontSize: "14px" }}>{error}</p>}
       
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "16px" }}>
@@ -42,7 +42,7 @@ export default function Login() {
         />
         <input
           type="password"
-          placeholder="Parolă"
+          placeholder="Password"
           value={parola}
           onChange={(e) => setParola(e.target.value)}
           required
@@ -53,11 +53,11 @@ export default function Login() {
           disabled={loading}
           style={{ padding: "10px", background: "#2563eb", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
         >
-          {loading.toString() === "true" || loading ? "Se conectează..." : "Conectare"}
+          {loading.toString() === "true" || loading ? "Logging in..." : "Log in"}
         </button>
       </form>
       <p style={{ marginTop: "16px", fontSize: "14px" }}>
-        Nu ai cont? <Link to="/register">Înregistrează-te</Link>
+        Don't have an account? <Link to="/register"><strong>Sign up</strong></Link>
       </p>
     </div>
   );
