@@ -195,18 +195,20 @@ const handleReset = () => {
 
                 return (
                   <article
-                    key={book.codcar}
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "10px",
-                      overflow: "hidden",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)"
-                    }}
-                  >
+                        key={book.codcar}
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "10px",
+                          overflow: "hidden",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+                          width: "100%",
+                          maxWidth: "340px"
+                        }}
+                      >
                     <div>
                       {/* Book Cover Image Placeholder */}
                       <div
