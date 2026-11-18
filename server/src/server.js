@@ -295,6 +295,51 @@ app.get("/api/my-account", authenticateToken, async (req, res) => {
     }
 });
 
+app.get("/api/authors", async (req, res) => {
+  try {
+    const { search } = req.query;
+
+    let query = `
+      SELECT
+        a.coda,
+        a.nume,
+        a.biografie,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'codcar', c.codcar,
+              'titlu', c.titlu,
+              'pret', c.pret,
+              'stoc', c.stoc,
+              'editura', c.editura,
+              'limba', c.limba
+            )
+          )
+          FROM carte_autor ca
+          JOIN carte c ON ca.codcar = c.codcar
+          WHERE ca.coda = a.coda),
+          '[]'
+        ) AS carti
+      FROM autor a
+      WHERE 1=1
+    `;
+
+    const values = [];
+    if (search && search.trim() !== "") {
+      query += ` AND a.nume ILIKE $1`;
+      values.push(`%${search.trim()}%`);
+    }
+
+    query += ` ORDER BY a.nume ASC`;
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Could not retrieve authors:", error.message);
+    res.status(500).json({ message: "Could not retrieve authors" });
+  }
+});
+
 
 
 

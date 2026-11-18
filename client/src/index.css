@@ -4,7 +4,7 @@
 }
 
 :root {
-  font-family: Geneva, Verdana, sans-serif,serif;
+  font-family: 'Inter', Geneva, Verdana, sans-serif;
   color: #25251f;
   background: hsl(180, 100%, 97%);
   font-synthesis: none;
@@ -74,8 +74,9 @@ a {
 
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
   gap: 24px;
+  justify-content: start;
 }
 
 .book-card {

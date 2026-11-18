@@ -4,7 +4,9 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { BookDetailPage } from "./pages/BookDetail";
+import Authors from "./pages/Authors";
 import "./App.css";
+import defaultCover from "./assets/book-cover.jpg";
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000/api"
@@ -173,56 +175,112 @@ const handleReset = () => {
         {!loading && <div className="results-count">{books.length} books found</div>}
         {loading && <p>Loading...</p>}
         {error && <p className="error">{error}</p>}
-
-        {!loading && !error && books.length === 0 && (
+         {!loading && !error && books.length === 0 && (
           <div className="empty">
             <h3>No book</h3>
             <p>Didn't find any books matching the filters.</p>
           </div>
-        )}
+         )}
 
-        {!loading && !error && books.length > 0 && (
-          <div className="book-grid">
-            {books.map((book) => {
-              const authorNames = book.autori && book.autori.length > 0 
-                ? book.autori.map(a => a.nume).join(", ") 
-                : "Unknown Author";
+          {!loading && !error && books.length > 0 && (
+            <div className="book-grid">
+              {books.map((book) => {
+                const authorNames = book.autori && book.autori.length > 0 
+                  ? book.autori.map(a => a.nume).join(", ") 
+                  : "Unknown Author";
 
-              const genreNames = book.genuri && book.genuri.length > 0
-                ? book.genuri.map(g => g.denumire).join(", ")
-                : "";
+                const genreNames = book.genuri && book.genuri.length > 0
+                  ? book.genuri.map(g => g.denumire).join(", ")
+                  : "";
 
-              return (
-                <article className="book-card" key={book.codcar}>
-                  <div className="book-cover"></div>
-                  <div className="book-info">
-                    <h3>{book.titlu}</h3>
-                    <p className="publisher">
-                      <strong>{authorNames}</strong>
-                      <br />
-                      {book.editura} · {book.limba}
-                      {genreNames && (
-                        <>
-                          <br />
-                          <span style={{ color: '#0284c7', fontSize: '12px', fontWeight: '500' }}>
-                            Genres: {genreNames}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                    <Link className="details-btn" to={`/book/${book.codcar}`}>
-                      See more
-                    </Link>
-                    <div className="book-bottom">
-                      <strong>{Number(book.pret).toFixed(2)} lei</strong>
-                      <span>{book.stoc > 0 ? `${book.stoc} in stock` : "Out of stock"}</span>
+                return (
+                  <article
+                    key={book.codcar}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "10px",
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)"
+                    }}
+                  >
+                    <div>
+                      {/* Book Cover Image Placeholder */}
+                      <div
+                        style={{
+                          height: "200px",
+                          overflow: "hidden",
+                          background: "#efe3fc"
+                        }}
+                      >
+                        <img
+                          src={defaultCover}
+                          alt={book.titlu}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            objectPosition: "top"
+                          }}
+                        />
+                      </div>
+
+                      {/* Book Information Stacked Vertically */}
+                      <div style={{ padding: "18px" }}>
+                        <h3
+                          style={{
+                            margin: "0 0 6px",
+                            fontFamily: "Georgia, serif",
+                            fontSize: "19px",
+                            color: "#0f172a",
+                            lineHeight: "1.3"
+                          }}
+                        >
+                          {book.titlu}
+                        </h3>
+                        <p style={{ margin: "0 0 8px", fontSize: "13px", color: "#475569", fontWeight: "600" }}>
+                          {authorNames}
+                        </p>
+                        <p style={{ margin: 0, fontSize: "12px", color: "#64748b", lineHeight: "1.5" }}>
+                          {book.editura} · {book.limba}
+                          {genreNames && (
+                            <>
+                              <br />
+                              <span style={{ color: '#0284c7', fontWeight: '500' }}>
+                                Genres: {genreNames}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+
+                    {/* Card Footer */}
+                    <div style={{ padding: "0 18px 18px 18px" }}>
+                      <Link
+                        to={`/book/${book.codcar}`}
+                        className="details-btn"
+                        style={{ display: "inline-block", marginBottom: "14px", padding: "6px 12px", fontSize: "13px", textDecoration: "none" }}
+                      >
+                        See more
+                      </Link>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
+                        <strong style={{ fontSize: "16px", color: "#0f172a" }}>
+                          {Number(book.pret).toFixed(2)} lei
+                        </strong>
+                        <span style={{ color: book.stoc > 0 ? "#059669" : "#dc2626", fontWeight: "600", fontSize: "12px" }}>
+                          {book.stoc > 0 ? `${book.stoc} in stock` : "Out of stock"}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
       </section>
     </main>
   );
@@ -256,6 +314,7 @@ function App() {
         />
 
         <Route path="/login" element={<Login />} />
+        <Route path="/autori" element={<Authors />} />
         <Route path="/register" element={<Register />} />
         <Route path="/book/:id" element={<BookDetailPage />} />
       </Routes>
