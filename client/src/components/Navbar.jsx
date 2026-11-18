@@ -44,10 +44,9 @@ export default function Navbar() {
           <Link className="my-account-btn" to="/my-account" onClick={closeMenu}>
             My Account
           </Link>
-
-            <button className="logout-btn" onClick={handleLogout}>
+          <Link className="logout-btn" onClick={handleLogout}>
               Log out
-            </button>
+          </Link>
           </>
         ) : (
           <Link className="login-btn" to="/login" onClick={closeMenu}>

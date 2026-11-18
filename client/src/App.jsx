@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Routes, Route } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import { BookDetailPage } from "./pages/BookDetail";
 import "./App.css";
 
 const API_URL = (
@@ -15,17 +15,20 @@ function Catalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [filters, setFilters] = useState({
-    titlu: "",
-    limba: "",
-    editura: "",
-    minPret: "",
-    maxPret: "",
-    stoc: false
-  });
+const [filters, setFilters] = useState({
+  titlu: "",
+  autor: "",
+  limba: "",
+  editura: "",
+  gen: "",
+  minPret: "",
+  maxPret: "",
+  stoc: false
+});
 
   const [languages, setLanguages] = useState([]);
   const [publishers, setPublishers] = useState([]);
+  const [genres, setGenres] = useState([]);
 
   const loadBooks = async (currentFilters = filters) => {
     try {
@@ -58,6 +61,7 @@ function Catalog() {
       const data = await response.json();
       setLanguages(data.languages || []);
       setPublishers(data.publishers || []);
+      setGenres(data.genres || []);
     } catch (err) {
       console.error(err.message);
     }
@@ -76,27 +80,31 @@ function Catalog() {
     }));
   };
 
-  const handleFilter = () => {
-    loadBooks({
-      ...filters,
-      titlu: filters.titlu.trim(),
-      limba: filters.limba.trim(),
-      editura: filters.editura.trim()
-    });
-  };
+const handleFilter = () => {
+  loadBooks({
+    ...filters,
+    titlu: filters.titlu.trim(),
+    autor: filters.autor.trim(),
+    limba: filters.limba.trim(),
+    editura: filters.editura.trim(),
+    gen: filters.gen.trim()
+  });
+};
 
-  const handleReset = () => {
-    const emptyFilters = {
-      titlu: "",
-      limba: "",
-      editura: "",
-      minPret: "",
-      maxPret: "",
-      stoc: false
-    };
-    setFilters(emptyFilters);
-    loadBooks(emptyFilters);
+const handleReset = () => {
+  const emptyFilters = {
+    titlu: "",
+    autor: "",
+    limba: "",
+    editura: "",
+    gen: "",
+    minPret: "",
+    maxPret: "",
+    stoc: false
   };
+  setFilters(emptyFilters);
+  loadBooks(emptyFilters);
+};
 
   return (
     <main className="main">
@@ -111,6 +119,13 @@ function Catalog() {
               value={filters.titlu}
               onChange={handleChange}
             />
+            <input
+              type="text"
+              name="autor"
+              placeholder="Search by author..."
+              value={filters.autor}
+              onChange={handleChange}
+            />
             <select name="limba" value={filters.limba} onChange={handleChange}>
               <option value="">All languages</option>
               {languages.map((language) => (
@@ -121,6 +136,12 @@ function Catalog() {
               <option value="">All publishers</option>
               {publishers.map((publisher) => (
                 <option key={publisher} value={publisher}>{publisher}</option>
+              ))}
+            </select>
+            <select name="gen" value={filters.gen} onChange={handleChange}>
+              <option value="">All genres</option>
+              {genres.map((genre) => (
+                <option key={genre} value={genre}>{genre}</option>
               ))}
             </select>
             <input
@@ -162,20 +183,44 @@ function Catalog() {
 
         {!loading && !error && books.length > 0 && (
           <div className="book-grid">
-            {books.map((book) => (
-              <article className="book-card" key={book.codcar}>
-                <div className="book-cover"></div>
-                <div className="book-info">
-                  <h3>{book.titlu}</h3>
-                  <p className="publisher">{book.editura} · {book.limba}</p>
-                  <p className="description">{book.descriere || "Descoperă această carte"}</p>
-                  <div className="book-bottom">
-                    <strong>{Number(book.pret).toFixed(2)} lei</strong>
-                    <span>{book.stoc > 0 ? `${book.stoc} in stock` : "Out of stock"}</span>
+            {books.map((book) => {
+              const authorNames = book.autori && book.autori.length > 0 
+                ? book.autori.map(a => a.nume).join(", ") 
+                : "Unknown Author";
+
+              const genreNames = book.genuri && book.genuri.length > 0
+                ? book.genuri.map(g => g.denumire).join(", ")
+                : "";
+
+              return (
+                <article className="book-card" key={book.codcar}>
+                  <div className="book-cover"></div>
+                  <div className="book-info">
+                    <h3>{book.titlu}</h3>
+                    <p className="publisher">
+                      <strong>{authorNames}</strong>
+                      <br />
+                      {book.editura} · {book.limba}
+                      {genreNames && (
+                        <>
+                          <br />
+                          <span style={{ color: '#0284c7', fontSize: '12px', fontWeight: '500' }}>
+                            Genres: {genreNames}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                    <Link className="details-btn" to={`/book/${book.codcar}`}>
+                      See more
+                    </Link>
+                    <div className="book-bottom">
+                      <strong>{Number(book.pret).toFixed(2)} lei</strong>
+                      <span>{book.stoc > 0 ? `${book.stoc} in stock` : "Out of stock"}</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -212,6 +257,7 @@ function App() {
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/book/:id" element={<BookDetailPage />} />
       </Routes>
     </div>
   );

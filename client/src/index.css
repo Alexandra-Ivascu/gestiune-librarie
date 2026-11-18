@@ -4,7 +4,7 @@
 }
 
 :root {
-  font-family: Inter, Arial, sans-serif;
+  font-family: Geneva, Verdana, sans-serif,serif;
   color: #25251f;
   background: hsl(180, 100%, 97%);
   font-synthesis: none;
@@ -248,16 +248,16 @@ a {
 
 .logout-btn {
     background: #fa6565;
-    color: white;
-    border: none;
+    color: white !important;
     padding: 6px 12px;
     border-radius: 6px;
     cursor: pointer;
 }
 
 .login-btn, 
-.my-account-btn {
-    background: #88abf7;
+.my-account-btn, 
+.details-btn {
+    background: #779ff8;
     color: white !important;
     padding: 6px 12px;
     border-radius: 6px;
@@ -296,8 +296,7 @@ a {
     }
 
     .nav-links a,
-    .nav-user,
-    .logout-btn {
+    .nav-user {
         padding: 12px;
     }
 

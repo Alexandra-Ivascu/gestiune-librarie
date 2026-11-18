@@ -44,27 +44,32 @@ app.get("/api/health", async(req,res)=>{
 
 app.get("/api/books", async (req, res) => {
   try {
-    const {
-      titlu,
-      limba,
-      editura,
-      maxPret,
-      stoc
-    } = req.query;
+    const { titlu, autor, limba, editura, gen, maxPret, stoc } = req.query;
 
     let query = `
       SELECT
-        codcar,
-        titlu,
-        isbn,
-        descriere,
-        pret,
-        stoc,
-        data_publicare,
-        limba,
-        editura,
-        nr_pag
-      FROM carte
+        c.codcar,
+        c.titlu,
+        c.pret,
+        c.stoc,
+        c.data_publicare,
+        c.limba,
+        c.editura,
+        COALESCE(
+          (SELECT json_agg(json_build_object('coda', a.coda, 'nume', a.nume))
+           FROM carte_autor ca
+           JOIN autor a ON ca.coda = a.coda
+           WHERE ca.codcar = c.codcar),
+          '[]'
+        ) AS autori,
+        COALESCE(
+          (SELECT json_agg(json_build_object('codg', g.codg, 'denumire', g.denumire))
+           FROM carte_gen cg
+           JOIN gen g ON cg.codg = g.codg
+           WHERE cg.codcar = c.codcar),
+          '[]'
+        ) AS genuri
+      FROM carte c
       WHERE 1=1
     `;
 
@@ -72,48 +77,63 @@ app.get("/api/books", async (req, res) => {
     let index = 1;
 
     if (titlu) {
-      query += ` AND titlu ILIKE $${index}`;
+      query += ` AND c.titlu ILIKE $${index}`;
       values.push(`%${titlu}%`);
       index++;
     }
 
+    if (autor) {
+      query += ` AND EXISTS (
+        SELECT 1
+        FROM carte_autor ca
+        JOIN autor a ON ca.coda = a.coda
+        WHERE ca.codcar = c.codcar AND a.nume ILIKE $${index}
+      )`;
+      values.push(`%${autor}%`);
+      index++;
+    }
+
     if (limba) {
-      query += ` AND limba ILIKE $${index}`;
+      query += ` AND c.limba ILIKE $${index}`;
       values.push(limba);
       index++;
     }
 
     if (editura) {
-      query += ` AND editura ILIKE $${index}`;
+      query += ` AND c.editura ILIKE $${index}`;
       values.push(editura);
       index++;
     }
 
-    if (maxPret !== undefined) {
-      query += ` AND pret <= $${index}`;
+    if (gen) {
+      query += ` AND EXISTS (
+        SELECT 1
+        FROM carte_gen cg
+        JOIN gen g ON cg.codg = g.codg
+        WHERE cg.codcar = c.codcar AND g.denumire ILIKE $${index}
+      )`;
+      values.push(gen);
+      index++;
+    }
+
+    if (maxPret !== undefined && maxPret !== "") {
+      query += ` AND c.pret <= $${index}`;
       values.push(maxPret);
       index++;
     }
 
     if (stoc === "true") {
-      query += ` AND stoc > 0`;
+      query += ` AND c.stoc > 0`;
     }
 
-    query += ` ORDER BY codcar DESC`;
-
     const result = await pool.query(query, values);
-
     res.json(result.rows);
 
   } catch (error) {
     console.error("Could not retrieve books:", error.message);
-
-    res.status(500).json({
-      message: "Could not retrieve books"
-    });
+    res.status(500).json({ message: "Could not retrieve books" });
   }
 });
-
 
 app.get("/api/books/filters", async (req, res) => {
   try {
@@ -129,14 +149,19 @@ app.get("/api/books/filters", async (req, res) => {
           SELECT DISTINCT editura
           FROM carte
           ORDER BY editura
-        ) AS publishers
+        ) AS publishers,
+
+        ARRAY(
+          SELECT DISTINCT denumire
+          FROM gen
+          ORDER BY denumire
+        ) AS genres
     `);
 
     res.json(result.rows[0]);
 
   } catch (error) {
     console.error("Could not retrieve filters:", error.message);
-
     res.status(500).json({
       message: "Could not retrieve filter options"
     });
@@ -146,32 +171,44 @@ app.get("/api/books/filters", async (req, res) => {
 
 app.get("/api/books/:id", async (req, res) => {
     try {
-          const id=req.params.id;
-          const result= await pool.query(
-            "SELECT * FROM carte WHERE codcar=$1",[id]
-          );
+        const id = req.params.id;
+        const result = await pool.query(
+          `SELECT
+            c.*,
+            COALESCE(
+              (SELECT json_agg(json_build_object('coda', a.coda, 'nume', a.nume))
+               FROM carte_autor ca
+               JOIN autor a ON ca.coda = a.coda
+               WHERE ca.codcar = c.codcar),
+              '[]'
+            ) AS autori,
+            COALESCE(
+              (SELECT json_agg(json_build_object('codg', g.codg, 'denumire', g.denumire))
+               FROM carte_gen cg
+               JOIN gen g ON cg.codg = g.codg
+               WHERE cg.codcar = c.codcar),
+              '[]'
+            ) AS genuri
+          FROM carte c
+          WHERE c.codcar = $1`,
+          [id]
+        );
 
-       
         if (result.rows.length === 0) {
            return res.status(404).json({
-           message: "Book not found"
-         });
+             message: "Book not found"
+           });
         }
 
-          res.json(result.rows[0]);
-      
-
+        res.json(result.rows[0]);
 
     } catch (error) {
         console.error(error.message);
-
         res.status(500).json({
             message: "Could not retrieve book"
         });
-
     }
 });
-
 
 app.post("/api/books", async (req, res) => {
     try {
