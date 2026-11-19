@@ -42,15 +42,19 @@ export default function Navbar() {
             Cart
           </Link>
         )}
+        {user?.role === "angajat" && <Link to="/admin" onClick={closeMenu}>Staff/Admin Panel</Link>}
+        {user?.role === "angajat" && user?.admin && (
+           <Link to="/admin/reports" onClick={closeMenu}>Reports &amp; Stats</Link>
+        )}
 
         {user ? (
           <>
             <Link className="my-account-btn" to="/my-account" onClick={closeMenu}>
               My Account
             </Link>
-            <Link className="logout-btn" onClick={handleLogout}>
+            <button type="button" className="logout-btn" onClick={handleLogout}>
               Log out
-            </Link>
+            </button>
           </>
         ) : (
           <Link className="login-btn" to="/login" onClick={closeMenu}>

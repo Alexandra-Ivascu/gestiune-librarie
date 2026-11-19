@@ -10,6 +10,8 @@ import defaultCover from "./assets/book-cover.jpg";
 import { useAuth } from "./context/AuthContext";
 import Cart from "./pages/Cart";
 import MyAccount from "./pages/MyAccount";
+import AdminPanel from "./pages/AdminPanel";
+import AdminReports from "./pages/AdminReports";
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000/api"
@@ -484,6 +486,8 @@ function App() {
         <Route path="/book/:id" element={<BookDetailPage />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/my-account" element={<MyAccount />} />
+        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/admin/reports" element={<AdminReports />} />
       </Routes>
     </div>
   );
