@@ -543,3 +543,285 @@ a:hover{
   color: #94a3b8;
   cursor: not-allowed;
 }
+
+/* --- Virtual Bookshelf Styling --- */
+
+.virtual-shelf-container {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+.shelf-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.shelf-header-text h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #0f172a;
+}
+
+.shelf-header-text p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.bookcase {
+  background: #291d18; /* Dark recessed cabinet interior */
+  border: 14px solid #5c3a21; /* Outer wooden frame */
+  border-radius: 8px;
+  padding: 32px 24px 0 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2), inset 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+.empty-shelf-msg {
+  color: #e2e8f0;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.shelf-row {
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+.shelf-row:last-child {
+  margin-bottom: 0;
+}
+
+.shelf-books {
+  display: flex;
+  align-items: flex-end; /* Books rest evenly on the bottom plank */
+  gap: 6px;
+  padding: 0 16px;
+  min-height: 260px;
+  overflow-x: auto;
+}
+
+/* Individual Book Spine */
+/* Individual Book Spine */
+.book-spine {
+  position: relative;
+  min-width: 44px;
+  width: max-content;
+  border-radius: 3px 3px 1px 1px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 10px;
+  box-sizing: border-box;
+  color: #f8fafc;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(0, 0, 0, 0.15) 85%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.24s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Vertical rotated book title that wraps cleanly into extra columns when long */
+.spine-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  text-align: center;
+  max-height: 185px;
+  white-space: normal;
+  word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+/* Pull-out effect on hover */
+.book-spine:hover {
+  transform: translateY(-16px) scale(1.03);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.55);
+  z-index: 5;
+}
+
+/* Decorative gold/foil spine bands */
+.spine-band {
+  width: 100%;
+  height: 3px;
+  background: rgba(253, 224, 71, 0.35);
+  flex-shrink: 0;
+}
+
+
+.spine-publisher {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Wooden Shelf Plank */
+.wooden-plank {
+  height: 18px;
+  background: linear-gradient(180deg, #855834 0%, #5c3a21 65%, #3e2514 100%);
+  border-radius: 2px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  margin: 0 -24px; /* Connects flush into the outer bookcase walls */
+}
+
+/* --- Stroll-Along-the-Shelf Enhancements --- */
+
+.stroll-bookcase {
+  position: relative;
+  padding: 44px 48px 0 48px;
+  overflow: hidden;
+}
+
+.stroll-viewport {
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.stroll-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.stroll-track {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 100%;
+  will-change: transform;
+}
+
+.stroll-books {
+  overflow: visible;
+  padding: 24px 28px 0 28px;
+  min-height: 285px;
+  gap: 7px;
+}
+
+.stroll-plank {
+  margin: 0 -48px;
+}
+
+/* Smooth transitions for proximity lift */
+.stroll-books .book-spine {
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.24s ease;
+}
+
+.stroll-books .book-spine:hover {
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.6);
+}
+
+/* Left / Right Stroll Controls */
+.stroll-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 58px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(24, 16, 12, 0.78);
+  color: #f8fafc;
+  font-size: 1.8rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.stroll-arrow:hover:not(:disabled) {
+  background: rgba(92, 58, 33, 0.95);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.stroll-arrow:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
+.stroll-arrow-left {
+  left: 10px;
+}
+
+.stroll-arrow-right {
+  right: 10px;
+}
+
+/* Subtle Stroll Position Indicator */
+.stroll-rail-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 0 4px;
+}
+
+.stroll-rail-track {
+  position: relative;
+  flex: 1;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stroll-rail-indicator {
+  width: 30%;
+  height: 100%;
+  background: #5c3a21;
+  border-radius: 999px;
+  transition: transform 0.2s ease-out;
+}
+
+.stroll-caption {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .stroll-bookcase {
+    padding: 36px 36px 0 36px;
+  }
+
+  .stroll-plank {
+    margin: 0 -36px;
+  }
+
+  .stroll-arrow {
+    width: 30px;
+    height: 48px;
+    font-size: 1.4rem;
+  }
+}

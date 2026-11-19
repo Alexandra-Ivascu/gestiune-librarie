@@ -32,6 +32,9 @@ export default function Navbar() {
         <a href="/#catalog" onClick={closeMenu}>
           Catalog
         </a>
+        <Link to="/shelf" className="nav-link">
+        Virtual Shelf
+        </Link>
 
         <Link to="/autori" onClick={closeMenu}>
           Discover authors
