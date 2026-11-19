@@ -7,6 +7,9 @@ import { BookDetailPage } from "./pages/BookDetail";
 import Authors from "./pages/Authors";
 import "./App.css";
 import defaultCover from "./assets/book-cover.jpg";
+import { useAuth } from "./context/AuthContext";
+import Cart from "./pages/Cart";
+import MyAccount from "./pages/MyAccount";
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000/api"
@@ -16,6 +19,7 @@ function Catalog() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { user } = useAuth();
 
 const [filters, setFilters] = useState({
   titlu: "",
@@ -108,6 +112,98 @@ const handleReset = () => {
   loadBooks(emptyFilters);
 };
 
+const [cartIds, setCartIds] = useState([]);
+const [savedIds, setSavedIds] = useState([]);
+
+useEffect(() => {
+  if (!user || user.role !== "client") {
+    setCartIds([]);
+    setSavedIds([]);
+    return;
+  }
+
+  const loadUserLists = async () => {
+    try {
+      const [cartRes, savedRes] = await Promise.all([
+        fetch(`${API_URL}/cart`, { credentials: "include" }),
+        fetch(`${API_URL}/saved/ids`, { credentials: "include" })
+      ]);
+
+      if (cartRes.ok) {
+        const cartData = await cartRes.json();
+        setCartIds(cartData.map((item) => Number(item.codcar)));
+      }
+
+      if (savedRes.ok) {
+        const savedData = await savedRes.json();
+        setSavedIds(savedData.map((id) => Number(id)));
+      }
+    } catch (err) {
+      console.error("Error loading cart/saved state:", err);
+    }
+  };
+
+  loadUserLists();
+}, [user]);
+
+const handleToggleCart = async (codcar, stoc) => {
+  const numericId = Number(codcar);
+  const isInCart = cartIds.includes(numericId);
+
+  if (!isInCart && stoc <= 0) return;
+
+  try {
+    if (isInCart) {
+      const res = await fetch(`${API_URL}/cart/${numericId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to remove from cart");
+      setCartIds((prev) => prev.filter((id) => id !== numericId));
+    } else {
+      const res = await fetch(`${API_URL}/cart`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codcar: numericId, nr_ex: 1 }),
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to add to cart");
+      setCartIds((prev) => [...prev, numericId]);
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+const handleToggleSave = async (codcar) => {
+  const numericId = Number(codcar);
+  const isSaved = savedIds.includes(numericId);
+
+  try {
+    if (isSaved) {
+      const res = await fetch(`${API_URL}/saved/${numericId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to unsave book");
+      setSavedIds((prev) => prev.filter((id) => id !== numericId));
+    } else {
+      const res = await fetch(`${API_URL}/saved`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codcar: numericId }),
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to save book");
+      setSavedIds((prev) => [...prev, numericId]);
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+
+
   return (
     <main className="main">
       <section className="catalog">
@@ -182,107 +278,174 @@ const handleReset = () => {
           </div>
          )}
 
-          {!loading && !error && books.length > 0 && (
-            <div className="book-grid">
-              {books.map((book) => {
-                const authorNames = book.autori && book.autori.length > 0 
-                  ? book.autori.map(a => a.nume).join(", ") 
-                  : "Unknown Author";
+        {!loading && !error && books.length > 0 && (
+          <div className="book-grid">
+            {books.map((book) => {
+              const authorNames = book.autori && book.autori.length > 0 
+                ? book.autori.map(a => a.nume).join(", ") 
+                : "Unknown Author";
 
-                const genreNames = book.genuri && book.genuri.length > 0
-                  ? book.genuri.map(g => g.denumire).join(", ")
-                  : "";
+              const genreNames = book.genuri && book.genuri.length > 0
+                ? book.genuri.map(g => g.denumire).join(", ")
+                : "";
 
-                return (
-                  <article
-                        key={book.codcar}
-                        style={{
-                          background: "#ffffff",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          overflow: "hidden",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between",
-                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
-                          width: "100%",
-                          maxWidth: "340px"
-                        }}
-                      >
-                    <div>
-                      {/* Book Cover Image Placeholder */}
-                      <div
-                        style={{
-                          height: "200px",
-                          overflow: "hidden",
-                          background: "#efe3fc"
-                        }}
-                      >
-                        <img
-                          src={defaultCover}
-                          alt={book.titlu}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            objectPosition: "top"
-                          }}
-                        />
-                      </div>
-
-                      {/* Book Information Stacked Vertically */}
-                      <div style={{ padding: "18px" }}>
-                        <h3
-                          style={{
-                            margin: "0 0 6px",
-                            fontFamily: "Georgia, serif",
-                            fontSize: "19px",
-                            color: "#0f172a",
-                            lineHeight: "1.3"
-                          }}
-                        >
-                          {book.titlu}
-                        </h3>
-                        <p style={{ margin: "0 0 8px", fontSize: "13px", color: "#475569", fontWeight: "600" }}>
-                          {authorNames}
-                        </p>
-                        <p style={{ margin: 0, fontSize: "12px", color: "#64748b", lineHeight: "1.5" }}>
-                          {book.editura} · {book.limba}
-                          {genreNames && (
-                            <>
-                              <br />
-                              <span style={{ color: '#0284c7', fontWeight: '500' }}>
-                                Genres: {genreNames}
-                              </span>
-                            </>
-                          )}
-                        </p>
-                      </div>
+              return (
+                <article
+                  key={book.codcar}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+                    width: "100%",
+                    maxWidth: "340px"
+                  }}
+                >
+                  <div>
+                    <div style={{ height: "200px", overflow: "hidden", background: "#efe3fc" }}>
+                      <img
+                        src={defaultCover}
+                        alt={book.titlu}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
+                      />
                     </div>
 
-                    {/* Card Footer */}
-                    <div style={{ padding: "0 18px 18px 18px" }}>
+                    <div style={{ padding: "18px" }}>
+                      <h3 style={{ margin: "0 0 6px", fontFamily: "Georgia, serif", fontSize: "19px", color: "#0f172a", lineHeight: "1.3" }}>
+                        {book.titlu}
+                      </h3>
+                      <p style={{ margin: "0 0 8px", fontSize: "13px", color: "#475569", fontWeight: "600" }}>
+                        {authorNames}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "12px", color: "#64748b", lineHeight: "1.5" }}>
+                        {book.editura} · {book.limba}
+                        {genreNames && (
+                          <>
+                            <br />
+                            <span style={{ color: '#0284c7', fontWeight: '500' }}>
+                              Genres: {genreNames}
+                            </span>
+                          </>
+                        )}
+ 
+                      </p>
+                      <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+                          <span style={{ color: "#f59e0b", fontWeight: "700" }}>
+                            ★ {book.rating_count > 0 ? Number(book.avg_rating).toFixed(1) : "—"}
+                          </span>
+                          <span style={{ color: "#64748b", fontSize: "12px" }}>
+                            ({book.rating_count || 0} {book.rating_count === 1 ? "rating" : "ratings"})
+                          </span>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "0 18px 18px 18px" }}>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
                       <Link
                         to={`/book/${book.codcar}`}
                         className="details-btn"
-                        style={{ display: "inline-block", marginBottom: "14px", padding: "6px 12px", fontSize: "13px", textDecoration: "none" }}
+                        style={{ display: "inline-block", padding: "6px 12px", fontSize: "13px", textDecoration: "none" }}
                       >
                         See more
                       </Link>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
-                        <strong style={{ fontSize: "16px", color: "#0f172a" }}>
-                          {Number(book.pret).toFixed(2)} lei
-                        </strong>
-                        <span style={{ color: book.stoc > 0 ? "#059669" : "#dc2626", fontWeight: "600", fontSize: "12px" }}>
-                          {book.stoc > 0 ? `${book.stoc} in stock` : "Out of stock"}
-                        </span>
-                      </div>
+
+                      {user?.role === "client" && (() => {
+                        const inCart = cartIds.includes(Number(book.codcar));
+                        const isSaved = savedIds.includes(Number(book.codcar));
+
+                        return (
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <button
+                              type="button"
+                              title={
+                                inCart
+                                  ? "Remove from cart"
+                                  : book.stoc > 0
+                                  ? "Add to cart"
+                                  : "Out of stock"
+                              }
+                              disabled={!inCart && book.stoc <= 0}
+                              onClick={() => handleToggleCart(book.codcar, book.stoc)}
+                              style={{
+                                background: inCart ? "#059669" : book.stoc > 0 ? "#2563eb" : "#94a3b8",
+                                color: "#ffffff",
+                                border: "none",
+                                borderRadius: "6px",
+                                width: "36px",
+                                height: "36px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: !inCart && book.stoc <= 0 ? "not-allowed" : "pointer"
+                              }}
+                            >
+                              {inCart ? (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              ) : (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                </svg>
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              title={isSaved ? "Remove from saved" : "Save"}
+                              onClick={() => handleToggleSave(book.codcar)}
+                              style={{
+                                background: isSaved ? "#fef3c7" : "#f1f5f9",
+                                color: isSaved ? "#b45309" : "#475569",
+                                border: isSaved ? "1px solid #f59e0b" : "1px solid #cbd5e1",
+                                borderRadius: "6px",
+                                width: "36px",
+                                height: "36px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer"
+                              }}
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill={isSaved ? "currentColor" : "none"}
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
+                      <strong style={{ fontSize: "16px", color: "#0f172a" }}>
+                        {Number(book.pret).toFixed(2)} lei
+                      </strong>
+                      <span style={{ color: book.stoc > 0 ? "#059669" : "#dc2626", fontWeight: "600", fontSize: "12px" }}>
+                        {book.stoc > 0 ? `${book.stoc} in stock` : "Out of stock"}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
     </main>
   );
@@ -319,6 +482,8 @@ function App() {
         <Route path="/autori" element={<Authors />} />
         <Route path="/register" element={<Register />} />
         <Route path="/book/:id" element={<BookDetailPage />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/my-account" element={<MyAccount />} />
       </Routes>
     </div>
   );

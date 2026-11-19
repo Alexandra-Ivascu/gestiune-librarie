@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -20,7 +19,6 @@ export default function Navbar() {
         Bookstore
       </Link>
 
-     
       <button
         className="hamburger"
         onClick={() => setMenuOpen(!menuOpen)}
@@ -39,14 +37,20 @@ export default function Navbar() {
           Discover authors
         </Link>
 
+        {user?.role === "client" && (
+          <Link to="/cart" onClick={closeMenu}>
+            Cart
+          </Link>
+        )}
+
         {user ? (
           <>
-          <Link className="my-account-btn" to="/my-account" onClick={closeMenu}>
-            My Account
-          </Link>
-          <Link className="logout-btn" onClick={handleLogout}>
+            <Link className="my-account-btn" to="/my-account" onClick={closeMenu}>
+              My Account
+            </Link>
+            <Link className="logout-btn" onClick={handleLogout}>
               Log out
-          </Link>
+            </Link>
           </>
         ) : (
           <Link className="login-btn" to="/login" onClick={closeMenu}>

@@ -55,6 +55,8 @@ app.get("/api/books", async (req, res) => {
         c.data_publicare,
         c.limba,
         c.editura,
+        COALESCE((SELECT ROUND(AVG(r.nota)::numeric, 1) FROM rating r WHERE r.codcar = c.codcar), 0) AS avg_rating,
+        (SELECT COUNT(*)::int FROM rating r WHERE r.codcar = c.codcar) AS rating_count,
         COALESCE(
           (SELECT json_agg(json_build_object('coda', a.coda, 'nume', a.nume))
            FROM carte_autor ca
@@ -170,44 +172,46 @@ app.get("/api/books/filters", async (req, res) => {
 
 
 app.get("/api/books/:id", async (req, res) => {
-    try {
-        const id = req.params.id;
-        const result = await pool.query(
-          `SELECT
-            c.*,
-            COALESCE(
-              (SELECT json_agg(json_build_object('coda', a.coda, 'nume', a.nume))
-               FROM carte_autor ca
-               JOIN autor a ON ca.coda = a.coda
-               WHERE ca.codcar = c.codcar),
-              '[]'
-            ) AS autori,
-            COALESCE(
-              (SELECT json_agg(json_build_object('codg', g.codg, 'denumire', g.denumire))
-               FROM carte_gen cg
-               JOIN gen g ON cg.codg = g.codg
-               WHERE cg.codcar = c.codcar),
-              '[]'
-            ) AS genuri
-          FROM carte c
-          WHERE c.codcar = $1`,
-          [id]
-        );
+  try {
+    const id = req.params.id;
+    const result = await pool.query(
+      `SELECT
+        c.*,
+        COALESCE((SELECT ROUND(AVG(r.nota)::numeric, 1) FROM rating r WHERE r.codcar = c.codcar), 0) AS avg_rating,
+        (SELECT COUNT(*)::int FROM rating r WHERE r.codcar = c.codcar) AS rating_count,
+        COALESCE(
+          (SELECT json_agg(json_build_object('coda', a.coda, 'nume', a.nume))
+           FROM carte_autor ca
+           JOIN autor a ON ca.coda = a.coda
+           WHERE ca.codcar = c.codcar),
+          '[]'
+        ) AS autori,
+        COALESCE(
+          (SELECT json_agg(json_build_object('codg', g.codg, 'denumire', g.denumire))
+           FROM carte_gen cg
+           JOIN gen g ON cg.codg = g.codg
+           WHERE cg.codcar = c.codcar),
+          '[]'
+        ) AS genuri
+      FROM carte c
+      WHERE c.codcar = $1`,
+      [id]
+    );
 
-        if (result.rows.length === 0) {
-           return res.status(404).json({
-             message: "Book not found"
-           });
-        }
-
-        res.json(result.rows[0]);
-
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({
-            message: "Could not retrieve book"
-        });
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Book not found"
+      });
     }
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({
+      message: "Could not retrieve book"
+    });
+  }
 });
 
 app.post("/api/books", async (req, res) => {
@@ -340,6 +344,382 @@ app.get("/api/authors", async (req, res) => {
   }
 });
 
+
+
+app.get("/api/cart", authenticateToken, async (req, res) => {
+    try {
+        const codcli = req.user.id; 
+        const query = `
+            SELECT c.codcar, c.nr_ex, c.data_adaugare, carte.titlu, carte.pret, carte.stoc, carte.editura, carte.limba
+            FROM cos c
+            JOIN carte ON c.codcar = carte.codcar
+            WHERE c.codcli = $1;
+        `;
+        const result = await pool.query(query, [codcli]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Fetch cart error:", err.message);
+        res.status(500).json({ message: "Server error fetching cart" });
+    }
+});
+
+
+app.post("/api/cart", authenticateToken, async (req, res) => {
+    try {
+        const codcli = req.user.id;
+        const { codcar, nr_ex = 1 } = req.body;
+
+        if (!codcar || nr_ex <= 0) {
+            return res.status(400).json({ message: "Invalid book or quantity" });
+        }
+
+    
+        const existing = await pool.query(
+            "SELECT nr_ex FROM cos WHERE codcli = $1 AND codcar = $2",
+            [codcli, codcar]
+        );
+
+        if (existing.rows.length > 0) {
+            const newQty = existing.rows[0].nr_ex + Number(nr_ex);
+            await pool.query(
+                "UPDATE cos SET nr_ex = $1 WHERE codcli = $2 AND codcar = $3",
+                [newQty, codcli, codcar]
+            );
+        } else {
+            await pool.query(
+                "INSERT INTO cos (codcli, codcar, nr_ex) VALUES ($1, $2, $3)",
+                [codcli, codcar, nr_ex]
+            );
+        }
+
+        res.status(200).json({ message: "Cart updated successfully" });
+    } catch (err) {
+        console.error("Add to cart error:", err.message);
+        res.status(500).json({ message: "Server error updating cart" });
+    }
+});
+
+app.delete("/api/cart/:codcar", authenticateToken, async (req, res) => {
+    try {
+        const codcli = req.user.id;
+        const { codcar } = req.params;
+
+    await pool.query(
+            "DELETE FROM cos WHERE codcli = $1 AND codcar = $2",
+            [codcli, codcar]
+        );
+        res.status(200).json({ message: "Item removed from cart" });
+    } catch (err) {
+        console.error("Remove from cart error:", err.message);
+        res.status(500).json({ message: "Server error removing item" });
+    }
+});
+
+// Update quantity (nr_ex) for an item in the logged-in client's cart
+app.patch("/api/cart/:codcar", authenticateToken, async (req, res) => {
+  try {
+    const codcli = req.user.id;
+    const { codcar } = req.params;
+    const { nr_ex } = req.body;
+
+    const nextQty = Number(nr_ex);
+    if (!Number.isInteger(nextQty) || nextQty < 1) {
+      return res.status(400).json({ message: "Quantity must be at least 1" });
+    }
+
+    const bookResult = await pool.query(
+      "SELECT stoc FROM carte WHERE codcar = $1",
+      [codcar]
+    );
+
+    if (bookResult.rows.length === 0) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    if (nextQty > bookResult.rows[0].stoc) {
+      return res.status(400).json({
+        message: `Only ${bookResult.rows[0].stoc} copies available in stock`
+      });
+    }
+
+    const updated = await pool.query(
+      `UPDATE cos
+       SET nr_ex = $1
+       WHERE codcli = $2 AND codcar = $3
+       RETURNING codcar, nr_ex`,
+      [nextQty, codcli, codcar]
+    );
+
+    if (updated.rows.length === 0) {
+      return res.status(404).json({ message: "Item not found in cart" });
+    }
+
+    res.json(updated.rows[0]);
+  } catch (err) {
+    console.error("Update cart quantity error:", err.message);
+    res.status(500).json({ message: "Server error updating quantity" });
+  }
+});
+
+// Get saved book IDs for the logged-in client
+app.get("/api/saved/ids", authenticateToken, async (req, res) => {
+  try {
+    const codcli = req.user.id;
+    const result = await pool.query(
+      "SELECT codcar FROM salvare WHERE codcli = $1",
+      [codcli]
+    );
+    res.json(result.rows.map((row) => row.codcar));
+  } catch (err) {
+    console.error("Fetch saved IDs error:", err.message);
+    res.status(500).json({ message: "Server error fetching saved books" });
+  }
+});
+
+// Save a book for the logged-in client
+app.post("/api/saved", authenticateToken, async (req, res) => {
+  try {
+    const codcli = req.user.id;
+    const { codcar } = req.body;
+
+    if (!codcar) {
+      return res.status(400).json({ message: "Book ID is required" });
+    }
+
+    await pool.query(
+      `INSERT INTO salvare (codcli, codcar)
+       VALUES ($1, $2)
+       ON CONFLICT (codcli, codcar) DO NOTHING`,
+      [codcli, codcar]
+    );
+
+    res.status(200).json({ message: "Book saved", codcar });
+  } catch (err) {
+    console.error("Save book error:", err.message);
+    res.status(500).json({ message: "Server error saving book" });
+  }
+});
+
+// Unsave (remove from salvare) a book for the logged-in client
+app.delete("/api/saved/:codcar", authenticateToken, async (req, res) => {
+  try {
+    const codcli = req.user.id;
+    const { codcar } = req.params;
+
+    await pool.query(
+      "DELETE FROM salvare WHERE codcli = $1 AND codcar = $2",
+      [codcli, codcar]
+    );
+
+    res.status(200).json({ message: "Book removed from saved", codcar: Number(codcar) });
+  } catch (err) {
+    console.error("Unsave book error:", err.message);
+    res.status(500).json({ message: "Server error removing saved book" });
+  }
+});
+
+// Checkout: move items from cos -> vanzare, decrement carte.stoc, and clear cos
+app.post("/api/cart/checkout", authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const codcli = req.user.id;
+
+    if (req.user.role !== "client") {
+      return res.status(403).json({ message: "Only clients can place orders" });
+    }
+
+    await client.query("BEGIN");
+
+    // Lock cart rows and current book stock so concurrent checkouts cannot oversell
+    const cartResult = await client.query(
+      `SELECT c.codcar, c.nr_ex, carte.titlu, carte.pret, carte.stoc
+       FROM cos c
+       JOIN carte ON c.codcar = carte.codcar
+       WHERE c.codcli = $1
+       FOR UPDATE OF carte`,
+      [codcli]
+    );
+
+    if (cartResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Your cart is empty" });
+    }
+
+    // Verify stock for every item before modifying data
+    for (const item of cartResult.rows) {
+      if (item.stoc < item.nr_ex) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          message: `Insufficient stock for "${item.titlu}". Available: ${item.stoc}, requested: ${item.nr_ex}`
+        });
+      }
+    }
+
+    let totalPaid = 0;
+
+    for (const item of cartResult.rows) {
+      await client.query(
+        `INSERT INTO vanzare (codcli, codcar, codang, nr_ex)
+         VALUES ($1, $2, NULL, $3)`,
+        [codcli, item.codcar, item.nr_ex]
+      );
+
+      await client.query(
+        `UPDATE carte
+         SET stoc = stoc - $1
+         WHERE codcar = $2`,
+        [item.nr_ex, item.codcar]
+      );
+
+      totalPaid += Number(item.pret) * item.nr_ex;
+    }
+
+    await client.query("DELETE FROM cos WHERE codcli = $1", [codcli]);
+
+    await client.query("COMMIT");
+
+    res.status(200).json({
+      message: "Order placed successfully",
+      itemsPurchased: cartResult.rows.length,
+      total: Number(totalPaid.toFixed(2))
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Checkout error:", err.message);
+    res.status(500).json({ message: "Checkout failed. Please try again." });
+  } finally {
+    client.release();
+  }
+});
+
+// Get saved books for the logged-in client
+app.get("/api/saved", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "client") {
+      return res.status(403).json({ message: "Only clients have saved books" });
+    }
+
+    const codcli = req.user.id;
+    const query = `
+      SELECT
+        s.codcar,
+        s.data_salvare,
+        carte.titlu,
+        carte.pret,
+        carte.stoc,
+        carte.editura,
+        carte.limba
+      FROM salvare s
+      JOIN carte ON s.codcar = carte.codcar
+      WHERE s.codcli = $1
+      ORDER BY s.data_salvare DESC;
+    `;
+    const result = await pool.query(query, [codcli]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Fetch saved books error:", err.message);
+    res.status(500).json({ message: "Server error fetching saved books" });
+  }
+});
+
+// Get order history (vanzare) for the logged-in client
+app.get("/api/orders", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "client") {
+      return res.status(403).json({ message: "Only clients have order history" });
+    }
+
+    const codcli = req.user.id;
+    const query = `
+      SELECT
+        ROW_NUMBER() OVER (ORDER BY v.data_vanzare DESC, v.codcar ASC) AS order_row_id,
+        v.codcar,
+        v.nr_ex,
+        v.data_vanzare,
+        carte.titlu,
+        carte.pret,
+        carte.editura,
+        carte.limba,
+        (carte.pret * v.nr_ex) AS subtotal
+      FROM vanzare v
+      JOIN carte ON v.codcar = carte.codcar
+      WHERE v.codcli = $1
+      ORDER BY v.data_vanzare DESC, v.codcar ASC;
+    `;
+    const result = await pool.query(query, [codcli]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Fetch orders error:", err.message);
+    res.status(500).json({ message: "Server error fetching order history" });
+  }
+});
+
+// Get current logged-in client's rating for a specific book
+app.get("/api/books/:id/my-rating", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "client") {
+      return res.json({ nota: null });
+    }
+
+    const codcli = req.user.id;
+    const codcar = req.params.id;
+
+    const result = await pool.query(
+      "SELECT nota FROM rating WHERE codcli = $1 AND codcar = $2",
+      [codcli, codcar]
+    );
+
+    res.json({ nota: result.rows[0]?.nota ?? null });
+  } catch (err) {
+    console.error("Fetch user rating error:", err.message);
+    res.status(500).json({ message: "Server error fetching rating" });
+  }
+});
+
+// Submit or update a rating (1-5) for a book
+app.post("/api/books/:id/rating", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "client") {
+      return res.status(403).json({ message: "Only clients can rate books" });
+    }
+
+    const codcli = req.user.id;
+    const codcar = req.params.id;
+    const nota = Number(req.body.nota);
+
+    if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+      return res.status(400).json({ message: "Rating must be an integer between 1 and 5" });
+    }
+
+    await pool.query(
+      `INSERT INTO rating (codcli, codcar, nota, data_rating)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+       ON CONFLICT (codcli, codcar)
+       DO UPDATE SET nota = EXCLUDED.nota, data_rating = CURRENT_TIMESTAMP`,
+      [codcli, codcar, nota]
+    );
+
+    const stats = await pool.query(
+      `SELECT
+         COALESCE(ROUND(AVG(nota)::numeric, 1), 0) AS avg_rating,
+         COUNT(*)::int AS rating_count
+       FROM rating
+       WHERE codcar = $1`,
+      [codcar]
+    );
+
+    res.status(200).json({
+      message: "Rating saved",
+      nota,
+      avg_rating: stats.rows[0].avg_rating,
+      rating_count: stats.rows[0].rating_count
+    });
+  } catch (err) {
+    console.error("Save rating error:", err.message);
+    res.status(500).json({ message: "Server error saving rating" });
+  }
+});
 
 
 
