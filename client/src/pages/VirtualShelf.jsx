@@ -127,7 +127,7 @@ export function VirtualShelfPage() {
 
   const handleBookClick = (bookId) => {
     if (dragStateRef.current.moved) return;
-    navigate(`/books/${bookId}`);
+    navigate(`/book/${bookId}`);
   };
 
   const stepStroll = (direction) => {

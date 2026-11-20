@@ -472,9 +472,7 @@ function App() {
                     Explore the catalog
                   </a>
                   <br></br>
-                  <a href="/shelf" className="hero-button">
-                    Try our virtual shelf tour
-                  </a>
+                 <Link className="hero-button" to="/shelf">Try our virtual shelf tour</Link>
                 </div>
               </section>
 
