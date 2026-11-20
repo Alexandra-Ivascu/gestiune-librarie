@@ -56,6 +56,7 @@ app.get("/api/books", async (req, res) => {
         c.data_publicare,
         c.limba,
         c.editura,
+        c.coperta_url,
         COALESCE((SELECT ROUND(AVG(r.nota)::numeric, 1) FROM rating r WHERE r.codcar = c.codcar), 0) AS avg_rating,
         (SELECT COUNT(*)::int FROM rating r WHERE r.codcar = c.codcar) AS rating_count,
         COALESCE(

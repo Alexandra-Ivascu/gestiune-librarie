@@ -312,8 +312,13 @@ const handleToggleSave = async (codcar) => {
                   <div>
                     <div style={{ height: "200px", overflow: "hidden", background: "#efe3fc" }}>
                       <img
-                        src={defaultCover}
+                        src={book.coperta_url || defaultCover}
                         alt={book.titlu}
+                        onError={(e) => {
+                          if (e.currentTarget.src !== defaultCover) {
+                            e.currentTarget.src = defaultCover;
+                          }
+                        }}
                         style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
                       />
                     </div>

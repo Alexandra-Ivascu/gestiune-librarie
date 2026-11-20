@@ -150,13 +150,16 @@ export default function Authors() {
 
                 <p
                   style={{
+                    overflowWrap: "anywhere",
+                    wordBreak: "break-word",
                     color: "#475569",
                     fontSize: "14px",
                     lineHeight: "1.6",
                     marginBottom: "20px"
                   }}
+                
                 >
-                  {author.biografie || "No biography available for this author."}
+                  {author.biografie || "No biography available."}
                 </p>
               </div>
 

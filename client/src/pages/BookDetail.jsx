@@ -169,6 +169,12 @@ export function BookDetailPage() {
       alert(err.message);
     }
   };
+  
+  function formatPublishYear(rawDate) {
+  if (!rawDate) return "N/A";
+  const match = String(rawDate).match(/\b(\d{4})\b/);
+  return match ? match[1] : "N/A";
+}
 
   if (loading) {
     return <div className="book-detail-loading">Loading book...</div>;
@@ -184,6 +190,7 @@ export function BookDetailPage() {
       </div>
     );
   }
+
 
   return (
     <div className="book-detail-container">
@@ -276,7 +283,16 @@ export function BookDetailPage() {
             className="book-cover-section"
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}
           >
-            <img src={defaultCover} alt={book.titlu} className="book-cover-image" />
+            <img
+              src={book.coperta_url || defaultCover}
+              alt={book.titlu}
+              onError={(e) => {
+                if (e.currentTarget.src !== defaultCover) {
+                  e.currentTarget.src = defaultCover;
+                }
+              }}
+              className="book-cover-image"
+            />
 
             {user?.role === "client" && (
               <div
@@ -374,6 +390,10 @@ export function BookDetailPage() {
                     ? book.genuri.map(g => g.denumire).join(", ")
                     : "N/A"}
                 </span>
+              </div>
+              <div className="meta-item">
+                <span className="meta-label">Year</span>
+                <span className="meta-value">{formatPublishYear(book.data_publicare)}</span>
               </div>
             </div>
 
