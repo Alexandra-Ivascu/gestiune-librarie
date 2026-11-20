@@ -16,7 +16,8 @@ export default function Navbar() {
   return (
     <header className="header">
       <Link className="logo" to="/" onClick={closeMenu}>
-        Bookstore
+        <img src="/icon.svg" alt=""  style={{ height: "28px", width: "28px", objectFit: "contain" }} className="logo-img" />
+        <span>Bookstore</span>
       </Link>
 
       <button
@@ -39,6 +40,7 @@ export default function Navbar() {
         <Link to="/autori" onClick={closeMenu}>
           Discover authors
         </Link>
+        <Link to="/goodreads" className="goodreads-btn" onClick={closeMenu}>goodreads Book Finder</Link>
 
         {user?.role === "client" && (
           <Link to="/cart" onClick={closeMenu}>

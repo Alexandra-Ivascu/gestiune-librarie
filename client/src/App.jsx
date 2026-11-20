@@ -13,6 +13,7 @@ import MyAccount from "./pages/MyAccount";
 import AdminPanel from "./pages/AdminPanel";
 import AdminReports from "./pages/AdminReports";
 import { VirtualShelfPage } from './pages/VirtualShelf';
+import { GoodreadsShelfMatcher } from "./pages/GoodreadsShelfMatcher";
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000/api"
@@ -492,6 +493,7 @@ function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/reports" element={<AdminReports />} />
         <Route path="/shelf" element={<VirtualShelfPage />} />
+        <Route path="/goodreads" element={<GoodreadsShelfMatcher />} />
       </Routes>
     </div>
   );
